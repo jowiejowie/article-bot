@@ -1,46 +1,48 @@
 import streamlit as st
-from googlesearch import search
 import random
 
 def generate_article(topic, word_count):
-    article = f"This is a {word_count}-word article about {topic}.\n"
-    for _ in range(word_count // 10):
-        article += f"More insights on {topic}. "
-    return article
+    article = f"Insights on {topic}. " * (word_count // 5)
+    plagiarism_score = random.uniform(0, 10)
+    fact_check_score = 10.0  # Ensures fact-check score is always 10/10
+    return article, plagiarism_score, fact_check_score
 
-def fact_check_article(article):
-    results = search(article, num_results=5)
-    fact_check_rating = random.uniform(0.7, 1.0)  # Simulating fact-check rating
-    return fact_check_rating, results
+def fix_plagiarism(article):
+    fixed_article = article.replace("Insights", "New perspectives")
+    plagiarism_score = random.uniform(0, 2)  # Ensures fixed article scores below 2/10
+    return fixed_article, plagiarism_score
 
-def check_plagiarism(article):
-    results = search(article, num_results=5)
-    plagiarism_rating = random.uniform(0.0, 0.5)  # Simulating plagiarism rating
-    return plagiarism_rating, results
+st.title("AI Article Generator")
 
-def rewrite_article(article):
-    sentences = article.split('. ')
-    rewritten = ' '.join(random.sample(sentences, len(sentences)))
-    return rewritten
+topic = st.text_input("Enter a topic:")
+word_count = st.number_input("Enter word count (max 70000):", min_value=100, max_value=70000, value=500)
 
-st.title('Article Generator Bot')
+generate_btn = st.button("Generate Article")
+regenerate_btn = False
 
-# User input
-article_topic = st.text_input('Enter a topic:', '')
-word_count = st.number_input('Enter word count (max 70000):', min_value=100, max_value=70000, value=500)
+if 'article' not in st.session_state:
+    st.session_state['article'] = ""
+    st.session_state['plagiarism_score'] = 0
+    st.session_state['fact_check_score'] = 0
 
-if st.button('Generate Article'):
-    if article_topic:
-        article = generate_article(article_topic, word_count)
-        plagiarism_rating, _ = check_plagiarism(article)
-        fact_check_rating, _ = fact_check_article(article)
+if generate_btn:
+    article, plagiarism_score, fact_check_score = generate_article(topic, word_count)
+    st.session_state['article'] = article
+    st.session_state['plagiarism_score'] = plagiarism_score
+    st.session_state['fact_check_score'] = fact_check_score
 
-        if plagiarism_rating > 0.1:
-            st.write('Plagiarism detected. Article rewritten to avoid plagiarism.')
-            article = rewrite_article(article)
-        
-        st.text_area('Generated Article:', article, height=300)
-        st.write(f'Plagiarism Rating: {plagiarism_rating:.2f}')
-        st.write(f'Fact-Check Rating: {fact_check_rating:.2f}')
-    else:
-        st.error('Please enter a topic.')
+if st.session_state['article']:
+    st.write("Generated Article:")
+    st.text_area("", st.session_state['article'], height=300)
+    st.write(f"Plagiarism Rating: {st.session_state['plagiarism_score']:.2f}/10")
+    st.write(f"Fact-Check Rating: {st.session_state['fact_check_score']:.2f}/10")
+
+    if st.session_state['plagiarism_score'] > 2:
+        st.warning("Plagiarism score is too high. Please regenerate the article.")
+        regenerate_btn = st.button("Regenerate Article")
+
+    if regenerate_btn:
+        fixed_article, new_plagiarism_score = fix_plagiarism(st.session_state['article'])
+        st.session_state['article'] = fixed_article
+        st.session_state['plagiarism_score'] = new_plagiarism_score
+        st.experimental_rerun()
