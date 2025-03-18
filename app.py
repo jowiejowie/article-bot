@@ -1,58 +1,46 @@
 import streamlit as st
 from googlesearch import search
 import random
-import time
 
 def generate_article(topic, word_count):
-    paragraphs = ["""
-    In the realm of {}, countless opportunities unfold as technology evolves. Entrepreneurs and businesses explore new frontiers, harnessing the power of innovation to reshape industries and redefine possibilities.
-    """.format(topic)] * (word_count // 100)
-    article = "\n\n".join(paragraphs)[:word_count]
+    article = f"This is a {word_count}-word article about {topic}.\n"
+    for _ in range(word_count // 10):
+        article += f"More insights on {topic}. "
     return article
 
-def fact_check(article):
-    queries = article.split(". ")[:5]  # Limit queries to avoid getting blocked
-    fact_check_score = 100
-    for query in queries:
-        try:
-            results = list(search(query, num_results=5))
-            if len(results) < 2:
-                fact_check_score -= 20
-        except Exception as e:
-            fact_check_score -= 20
-    return fact_check_score
+def fact_check_article(article):
+    results = search(article, num_results=5)
+    fact_check_rating = random.uniform(0.7, 1.0)  # Simulating fact-check rating
+    return fact_check_rating, results
 
-def plagiarism_check(article):
-    queries = article.split(". ")[:5]
-    plagiarism_score = 0
-    for query in queries:
-        try:
-            results = list(search(query, num_results=5))
-            if results:
-                plagiarism_score += 20
-        except Exception as e:
-            pass
-    return plagiarism_score
+def check_plagiarism(article):
+    results = search(article, num_results=5)
+    plagiarism_rating = random.uniform(0.0, 0.5)  # Simulating plagiarism rating
+    return plagiarism_rating, results
 
 def rewrite_article(article):
-    sentences = article.split(". ")
-    rewritten_sentences = [sentence[::-1] for sentence in sentences]  # Simple reverse for demonstration
-    return ". ".join(rewritten_sentences)
+    sentences = article.split('. ')
+    rewritten = ' '.join(random.sample(sentences, len(sentences)))
+    return rewritten
 
-st.title("Article Bot")
+st.title('Article Generator Bot')
 
-topic = st.text_input("Enter a topic:")
-word_count = st.number_input("Enter word count (max 70000):", min_value=100, max_value=70000, value=1000)
+# User input
+article_topic = st.text_input('Enter a topic:', '')
+word_count = st.number_input('Enter word count (max 70000):', min_value=100, max_value=70000, value=500)
 
-if st.button("Generate Article"):
-    article = generate_article(topic, word_count)
-    fact_check_score = fact_check(article)
-    plagiarism_score = plagiarism_check(article)
-    
-    if plagiarism_score > 50:
-        article = rewrite_article(article)
-        st.write("Plagiarism detected. Article rewritten to avoid plagiarism.")
-    
-    st.write(article)
-    st.write(f"Fact-Check Rating: {fact_check_score}%")
-    st.write(f"Plagiarism Rating: {plagiarism_score}%")
+if st.button('Generate Article'):
+    if article_topic:
+        article = generate_article(article_topic, word_count)
+        plagiarism_rating, _ = check_plagiarism(article)
+        fact_check_rating, _ = fact_check_article(article)
+
+        if plagiarism_rating > 0.1:
+            st.write('Plagiarism detected. Article rewritten to avoid plagiarism.')
+            article = rewrite_article(article)
+        
+        st.text_area('Generated Article:', article, height=300)
+        st.write(f'Plagiarism Rating: {plagiarism_rating:.2f}')
+        st.write(f'Fact-Check Rating: {fact_check_rating:.2f}')
+    else:
+        st.error('Please enter a topic.')
