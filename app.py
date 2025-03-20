@@ -1,47 +1,56 @@
 import streamlit as st
-import os
 from gpt4all import GPT4All
+import requests
+from bs4 import BeautifulSoup
+import re
 
-# Load GPT4All model
-model_path = os.path.expanduser('~') + "/AppData/Local/nomic.ai/GPT4All/Llama-3.2-1B-Instruct-Q4_0.gguf"
-gpt4all = GPT4All(model_path)
+gpt4all = GPT4All("Llama-3.2-1B-Instruct-Q4_0")  # Load your local model
 
-def generate_article(topic, word_count):
-    prompt = f"Generate a well-structured, fact-based article on {topic} with approximately {word_count} words. Ensure originality and readability."
-    response = gpt4all.generate(prompt, max_tokens=word_count * 2)
-    return response
+def google_search(query, num_results=5):
+    search_url = f"https://www.google.com/search?q={query}&num={num_results}"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(search_url, headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
+    results = [a.text for a in soup.select(".tF2Cxc .yuRUbf a")]
+    return results
 
 def check_plagiarism(article):
-    prompt = f"Analyze the following article for plagiarism and provide a plagiarism score from 0 (no plagiarism) to 10 (high plagiarism):\n{article}"
-    response = gpt4all.generate(prompt)
-    return float(response.strip())
+    sentences = article.split('.')
+    matches = 0
+    for sentence in sentences:
+        if sentence.strip():
+            results = google_search(sentence)
+            if results:
+                matches += 1
+    plagiarism_score = matches / len(sentences) * 100
+    return plagiarism_score
 
 def fact_check(article):
-    prompt = f"Analyze the following article for factual accuracy and provide a fact-check rating from 0 (completely inaccurate) to 10 (completely accurate):\n{article}"
-    response = gpt4all.generate(prompt)
-    return float(response.strip())
+    claims = re.findall(r'"(.*?)"', article)
+    verified_claims = 0
+    for claim in claims:
+        results = google_search(claim)
+        if results:
+            verified_claims += 1
+    fact_check_score = verified_claims / len(claims) * 100 if claims else 100
+    return fact_check_score
 
-st.title("AI-Powered Article Generator")
+def generate_article(topic):
+    prompt = f"Write a detailed, well-structured article about {topic} with an engaging introduction and conclusion."
+    article = gpt4all.generate(prompt)
+    return article
 
-topic = st.text_input("Enter a topic:")
-word_count = st.number_input("Enter word count (max 70000):", min_value=100, max_value=70000, value=500)
+def main():
+    st.title("AI Article Bot with GPT4All")
+    topic = st.text_input("Enter a topic:")
+    if st.button("Generate Article"):
+        article = generate_article(topic)
+        st.write("### Generated Article")
+        st.write(article)
+        plagiarism_score = check_plagiarism(article)
+        fact_check_score = fact_check(article)
+        st.write(f"**Plagiarism Score:** {plagiarism_score:.2f}%")
+        st.write(f"**Fact Check Score:** {fact_check_score:.2f}%")
 
-if st.button("Generate Article"):
-    article = generate_article(topic, word_count)
-    plagiarism_score = check_plagiarism(article)
-    fact_check_score = fact_check(article)
-
-    st.write("Generated Article:")
-    st.text_area("", article, height=300)
-    st.write(f"Plagiarism Rating: {plagiarism_score}/10")
-    st.write(f"Fact-Check Rating: {fact_check_score}/10")
-
-    if plagiarism_score > 2:
-        st.warning("High Plagiarism Score! Consider regenerating.")
-        if st.button("Regenerate Article"):
-            article = generate_article(topic, word_count)
-            plagiarism_score = check_plagiarism(article)
-            fact_check_score = fact_check(article)
-            st.text_area("", article, height=300)
-            st.write(f"Plagiarism Rating: {plagiarism_score}/10")
-            st.write(f"Fact-Check Rating: {fact_check_score}/10")
+if __name__ == "__main__":
+    main()
