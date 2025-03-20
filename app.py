@@ -4,7 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
-gpt4all = GPT4All("Llama-3.2-1B-Instruct-Q4_0")  # Load your local model
+# Load your local model with CPU mode to avoid CUDA errors
+gpt4all = GPT4All("Llama-3.2-1B-Instruct-Q4_0", device="cpu")
 
 def google_search(query, num_results=5):
     search_url = f"https://www.google.com/search?q={query}&num={num_results}"
