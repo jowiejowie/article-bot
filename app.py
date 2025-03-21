@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 
-gpt4all = GPT4All("Llama-3.2-1B-Instruct-Q4_0")
+gpt4all = GPT4All("Llama-3.2-1B-Instruct-Q4_0", device="cpu")
 
 def google_search(query, num_results=5):
     search_url = f"https://www.google.com/search?q={query}&num={num_results}"
